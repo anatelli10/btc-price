@@ -1,7 +1,13 @@
 import './App.scss';
 import React, { useEffect, useState } from 'react';
-import { makeStyles } from '@material-ui/core/styles';
-import { Box, createTheme, Tab, Tabs, ThemeProvider } from '@material-ui/core';
+import {
+    Box,
+    createTheme,
+    Tab,
+    Tabs,
+    ThemeProvider,
+    makeStyles
+} from '@material-ui/core';
 import clsx from 'clsx';
 import { Axis, Chart, Line, Point, Tooltip } from 'bizcharts';
 
