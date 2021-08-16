@@ -15,7 +15,6 @@
       </ul>
     </li>
     <li><a href="#acknowledgements">Acknowledgements</a></li>
-    <li><a href="#gallery">Gallery</a></li>
   </ol>
 </details>
 
