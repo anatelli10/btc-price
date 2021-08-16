@@ -1,25 +1,214 @@
-import logo from './logo.svg';
-import './App.css';
+import './App.scss';
+import React, { useEffect, useState } from 'react';
+import { makeStyles } from '@material-ui/core/styles';
+import { Box, createTheme, Tab, Tabs, ThemeProvider } from '@material-ui/core';
+import clsx from 'clsx';
+import { Axis, Chart, Line, Point, Tooltip } from 'bizcharts';
+
+const priceHistoryCache = [];
+
+const darkTheme = createTheme({
+    palette: {
+        type: 'dark'
+    },
+    overrides: {
+        MuiTabs: {
+            indicator: {
+                backgroundColor: '#6494f4'
+            }
+        },
+        MuiTab: {
+            textColorPrimary: {
+                fontFamily: 'Montserrat, sans-serif',
+                '&$selected': {
+                    color: '#6494f4'
+                }
+            }
+        }
+    }
+});
+
+const useStyles = makeStyles(theme => ({
+    title: {
+        margin: theme.spacing(2, 0),
+        letterSpacing: '0.5rem',
+        fontSize: '1rem'
+    },
+    subtitle: {
+        margin: theme.spacing(0, 0, 2),
+        fontSize: '5rem'
+    },
+    chart: {
+        margin: theme.spacing(0, 0, 2),
+        padding: theme.spacing(1)
+    },
+    tab: {
+        minWidth: 120
+    }
+}));
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const classes = useStyles();
+
+    const [currentPrice, setCurrentPrice] = useState('$');
+    const [priceHistory, setPriceHistory] = useState([]);
+    const [value, setValue] = useState(0);
+    const [animate, setAnimate] = useState(false);
+
+    const formattedDate = timestamp =>
+        (timestamp ? new Date(timestamp) : new Date()).toJSON().slice(0, 10);
+
+    const loadCurrentPrice = async () => {
+        const data = await fetch(
+            `https://api.coindesk.com/v1/bpi/currentprice/USD.json`
+        ).then(res => res.json());
+        const { rate } = data.bpi.USD;
+        const rounded = parseFloat(rate.replace(/,/g, ''))
+            .toFixed(2)
+            .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+        const newPrice = '$' + rounded;
+        if (newPrice !== currentPrice) return setCurrentPrice(newPrice);
+        setTimeout(loadCurrentPrice, 30000);
+    };
+
+    const loadPriceHistory = tabValue => {
+        if (priceHistoryCache[tabValue])
+            return setPriceHistory(priceHistoryCache[tabValue]);
+
+        let startDate;
+        if (tabValue === 6) startDate = '2010-07-17';
+        else if (tabValue === 3)
+            startDate = new Date(Date.now()).getFullYear() + '-01-01';
+        else {
+            let days;
+            switch (tabValue) {
+                case 1:
+                    days = 30;
+                    break;
+                case 2:
+                    days = 6 * 30;
+                    break;
+                case 4:
+                    days = 365;
+                    break;
+                case 5:
+                    days = 5 * 365;
+                    break;
+                default:
+                    days = 5;
+                    break;
+            }
+            startDate = formattedDate(Date.now() - days * 24 * 60 * 60 * 1000);
+        }
+
+        fetch(
+            `https://api.coindesk.com/v1/bpi/historical/close.json?start=${startDate}&end=${formattedDate(
+                Date.now()
+            )}`
+        )
+            .then(res => res.json())
+            .then(data => {
+                const { bpi } = data;
+                // Convert to array
+                let history = Object.entries(bpi).map(([key, val]) => ({
+                    date: key,
+                    price: val
+                }));
+                // UI can't keep up with thousands of data points, limit it to 500 points
+                if (history.length > 500)
+                    history = history.filter(
+                        (val, i) => !(i % Math.ceil(history.length / 500))
+                    );
+                setPriceHistory(history);
+                priceHistoryCache[tabValue] = history;
+            });
+    };
+
+    const handleTabClick = (event, newValue) => {
+        setValue(newValue);
+        loadPriceHistory(newValue);
+    };
+
+    useEffect(() => {
+        setAnimate(true);
+        setTimeout(() => setAnimate(false), 1000);
+        setTimeout(loadCurrentPrice, 30000);
+    }, [currentPrice]);
+
+    useEffect(() => {
+        loadCurrentPrice();
+        loadPriceHistory(value);
+    }, []);
+
+    return (
+        <ThemeProvider theme={darkTheme}>
+            <Box display="flex" justifyContent="center" flexDirection="column">
+                <div
+                    className={clsx(classes.title, 'glitch')}
+                    data-text={'btc-price'}
+                >
+                    btc-price
+                </div>
+                <div
+                    className={clsx(
+                        classes.subtitle,
+                        animate ? 'glitch' : null
+                    )}
+                    data-text={currentPrice}
+                >
+                    {currentPrice}
+                </div>
+                <Tabs
+                    value={value}
+                    onChange={handleTabClick}
+                    indicatorColor="primary"
+                    textColor="primary"
+                    centered
+                >
+                    <Tab className={classes.tab} label="5 days" />
+                    <Tab className={classes.tab} label="1 month" />
+                    <Tab className={classes.tab} label="6 months" />
+                    <Tab className={classes.tab} label="YTD" />
+                    <Tab className={classes.tab} label="1 year" />
+                    <Tab className={classes.tab} label="5 years" />
+                    <Tab className={classes.tab} label="Max" />
+                </Tabs>
+                <Chart
+                    className={classes.chart}
+                    appendPadding={[0, 0, 0, 0]}
+                    autoFit
+                    height={500}
+                    data={priceHistory}
+                    scale={{
+                        price: {
+                            alias: 'Price (USD)',
+                            type: 'linear-strict'
+                        }
+                    }}
+                >
+                    <Axis
+                        name="price"
+                        label={{
+                            formatter: val =>
+                                `$${val.replace(
+                                    /(\d)(?=(\d{3})+(?!\d))/g,
+                                    '$1,'
+                                )}`
+                        }}
+                    />
+                    <Line position="date*price" />
+                    <Point position="date*price" />
+                    <Tooltip showCrosshairs />
+                </Chart>
+                <div>
+                    Powered by{' '}
+                    <a href="https://www.coindesk.com/price/bitcoin">
+                        CoinDesk
+                    </a>
+                </div>
+            </Box>
+        </ThemeProvider>
+    );
 }
 
 export default App;
