@@ -62,26 +62,30 @@ function App() {
         const data = await fetch(
             `https://api.coindesk.com/v1/bpi/currentprice/USD.json`
         ).then(res => res.json());
+
         const { rate } = data.bpi.USD;
         const rounded = parseFloat(rate.replace(/,/g, ''))
             .toFixed(2)
             .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
         const newPrice = '$' + rounded;
+
         if (newPrice !== currentPrice) return setCurrentPrice(newPrice);
+
+        // Update price every 30 seconds, if current price gets set then the useEffect will do this instead
         setTimeout(loadCurrentPrice, 30000);
     };
 
-    const loadPriceHistory = tabValue => {
-        if (priceHistoryCache[tabValue])
-            return setPriceHistory(priceHistoryCache[tabValue]);
+    const loadPriceHistory = async () => {
+        if (priceHistoryCache[value])
+            return setPriceHistory(priceHistoryCache[value]);
 
         let startDate;
-        if (tabValue === 6) startDate = '2010-07-17';
-        else if (tabValue === 3)
+        if (value === 6) startDate = '2010-07-17';
+        else if (value === 3)
             startDate = new Date(Date.now()).getFullYear() + '-01-01';
         else {
             let days;
-            switch (tabValue) {
+            switch (value) {
                 case 1:
                     days = 30;
                     break;
@@ -101,43 +105,48 @@ function App() {
             startDate = formattedDate(Date.now() - days * 24 * 60 * 60 * 1000);
         }
 
-        fetch(
+        const data = await fetch(
             `https://api.coindesk.com/v1/bpi/historical/close.json?start=${startDate}&end=${formattedDate(
                 Date.now()
             )}`
-        )
-            .then(res => res.json())
-            .then(data => {
-                const { bpi } = data;
-                // Convert to array
-                let history = Object.entries(bpi).map(([key, val]) => ({
-                    date: key,
-                    price: val
-                }));
-                // UI can't keep up with thousands of data points, limit it to 500 points
-                if (history.length > 500)
-                    history = history.filter(
-                        (val, i) => !(i % Math.ceil(history.length / 500))
-                    );
-                setPriceHistory(history);
-                priceHistoryCache[tabValue] = history;
-            });
+        ).then(res => res.json());
+
+        const { bpi } = data;
+
+        // Convert to array
+        let history = Object.entries(bpi).map(([key, val]) => ({
+            date: key,
+            price: val
+        }));
+
+        // UI can't keep up with thousands of data points, limit it to 500 points
+        if (history.length > 500)
+            history = history.filter(
+                (val, i) => !(i % Math.ceil(history.length / 500))
+            );
+        setPriceHistory(history);
+        priceHistoryCache[value] = history;
     };
 
     const handleTabClick = (event, newValue) => {
         setValue(newValue);
-        loadPriceHistory(newValue);
     };
+
+    useEffect(() => {
+        loadPriceHistory();
+    }, [value]);
 
     useEffect(() => {
         setAnimate(true);
         setTimeout(() => setAnimate(false), 1000);
+
+        // Update price every 30 seconds
         setTimeout(loadCurrentPrice, 30000);
     }, [currentPrice]);
 
     useEffect(() => {
         loadCurrentPrice();
-        loadPriceHistory(value);
+        loadPriceHistory();
     }, []);
 
     return (
