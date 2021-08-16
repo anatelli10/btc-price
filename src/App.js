@@ -5,6 +5,14 @@ import { Box, createTheme, Tab, Tabs, ThemeProvider } from '@material-ui/core';
 import clsx from 'clsx';
 import { Axis, Chart, Line, Point, Tooltip } from 'bizcharts';
 
+const FIVE_DAYS = 0;
+const ONE_MONTH = 1;
+const SIX_MONTHS = 2;
+const YTD = 3;
+const ONE_YEAR = 4;
+const FIVE_YEARS = 5;
+const MAX = 6;
+
 const priceHistoryCache = [];
 
 const darkTheme = createTheme({
@@ -19,6 +27,7 @@ const darkTheme = createTheme({
         },
         MuiTab: {
             textColorPrimary: {
+                fontWeight: 'bold',
                 fontFamily: 'Montserrat, sans-serif',
                 '&$selected': {
                     color: '#6494f4'
@@ -52,7 +61,7 @@ function App() {
 
     const [currentPrice, setCurrentPrice] = useState('$');
     const [priceHistory, setPriceHistory] = useState([]);
-    const [value, setValue] = useState(0);
+    const [tabIndex, setTabIndex] = useState(0);
     const [animate, setAnimate] = useState(false);
 
     const formattedDate = timestamp =>
@@ -76,26 +85,30 @@ function App() {
     };
 
     const loadPriceHistory = async () => {
-        if (priceHistoryCache[value])
-            return setPriceHistory(priceHistoryCache[value]);
+        if (priceHistoryCache[tabIndex])
+            return setPriceHistory(priceHistoryCache[tabIndex]);
 
         let startDate;
-        if (value === 6) startDate = '2010-07-17';
-        else if (value === 3)
+        if (tabIndex === MAX) {
+            startDate = '2010-07-17';
+        } else if (tabIndex === YTD) {
             startDate = new Date(Date.now()).getFullYear() + '-01-01';
-        else {
+        } else {
             let days;
-            switch (value) {
-                case 1:
+            switch (tabIndex) {
+                case FIVE_DAYS:
+                    days = 5;
+                    break;
+                case ONE_MONTH:
                     days = 30;
                     break;
-                case 2:
+                case SIX_MONTHS:
                     days = 6 * 30;
                     break;
-                case 4:
+                case ONE_YEAR:
                     days = 365;
                     break;
-                case 5:
+                case FIVE_YEARS:
                     days = 5 * 365;
                     break;
                 default:
@@ -113,7 +126,7 @@ function App() {
 
         const { bpi } = data;
 
-        // Convert to array
+        // Process incoming data format to chart format
         let history = Object.entries(bpi).map(([key, val]) => ({
             date: key,
             price: val
@@ -125,16 +138,21 @@ function App() {
                 (val, i) => !(i % Math.ceil(history.length / 500))
             );
         setPriceHistory(history);
-        priceHistoryCache[value] = history;
+        priceHistoryCache[tabIndex] = history;
     };
 
     const handleTabClick = (event, newValue) => {
-        setValue(newValue);
+        setTabIndex(newValue);
     };
 
     useEffect(() => {
+        loadCurrentPrice();
         loadPriceHistory();
-    }, [value]);
+    }, []);
+
+    useEffect(() => {
+        loadPriceHistory();
+    }, [tabIndex]);
 
     useEffect(() => {
         setAnimate(true);
@@ -143,11 +161,6 @@ function App() {
         // Update price every 30 seconds
         setTimeout(loadCurrentPrice, 30000);
     }, [currentPrice]);
-
-    useEffect(() => {
-        loadCurrentPrice();
-        loadPriceHistory();
-    }, []);
 
     return (
         <ThemeProvider theme={darkTheme}>
@@ -168,7 +181,7 @@ function App() {
                     {currentPrice}
                 </div>
                 <Tabs
-                    value={value}
+                    value={tabIndex}
                     onChange={handleTabClick}
                     indicatorColor="primary"
                     textColor="primary"
