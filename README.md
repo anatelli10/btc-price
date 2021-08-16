@@ -39,4 +39,4 @@ Simple React app that displays the current price of Bitcoin and its price histor
 -   [BizCharts](https://github.com/alibaba/BizCharts)
 -   [Isaac Doud's Glitch Text](https://codepen.io/cipherbeta/pen/YLdVjw)
 
-[product-screenshot]: https://i.imgur.com/ZH4fAk4.png
+[product-screenshot]: https://i.imgur.com/zpnKxjA.mp4
