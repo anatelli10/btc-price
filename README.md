@@ -22,7 +22,7 @@
 
 ## About
 
-https://user-images.githubusercontent.com/70483566/129625178-227809d5-8223-463d-b19a-20bf8e9e6086.mp4
+https://user-images.githubusercontent.com/70483566/129626652-a02ee6a0-c53d-4b12-82e5-bcd6e8d09fbc.mp4
 
 Simple React app that displays the current price of Bitcoin and its price history. Leverages CoinDesk API. 
 
