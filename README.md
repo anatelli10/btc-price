@@ -1,7 +1,6 @@
 ## btc-price
 
-#### Code example
--   [src/App.js](https://github.com/anatelli10/btc-price/blob/main/src/App.js)
+#### Code example: [src/App.js](https://github.com/anatelli10/btc-price/blob/main/src/App.js)
 
 Simple React app that displays the current price of Bitcoin and its price history.
 
