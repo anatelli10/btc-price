@@ -1,6 +1,6 @@
 ## btc-price
 
-Simple React app that displays the current price of Bitcoin and its price history. Leverages CoinDesk API. 
+Simple React app that displays the current price of Bitcoin and its price history.
 
 https://user-images.githubusercontent.com/70483566/129626701-8177776c-2541-4bc4-8a15-ac00a9284ab1.mp4
 
